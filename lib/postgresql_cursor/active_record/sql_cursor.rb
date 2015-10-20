@@ -33,6 +33,17 @@ module PostgreSQLCursor
         all.each_instance(options, &block)
       end
 
+      # Public: Like each_instance, but returns an array
+      #
+      # Paramaters: same as each_instance
+      #
+      # Example:
+      #   Post.instance_in_batches { |posts| process(posts) }
+      def instance_in_batches(options={}, &block)
+        options = {:connection => self.connection}.merge(options)
+        all.instance_in_batches(options, &block)
+      end
+
       # Public: Returns each row as a hash to the given block
 
       # sql         - Full SQL statement, variables interpolated

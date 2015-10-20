@@ -26,6 +26,14 @@ module PostgreSQLCursor
         end
         alias :each_hash :each_row
 
+
+        def instance_in_batches(options={}, &block)
+          options = {:connection => self.connection}.merge(options)
+          cursor = PostgreSQLCursor::Cursor.new(to_unprepared_sql, options)
+          return cursor.instance_in_batches(self, &block) if block_given?
+          cursor.iterate_type(self)
+        end
+
         # Public: Like each_row, but returns an instantiated model object to the block
         #
         # Paramaters: same as each_row
