@@ -21,6 +21,7 @@ module PostgreSQLCursor
     include Enumerable
     attr_reader :sql, :options, :connection, :count, :result
     @@cursor_seq = 0
+    @@cursor_prefix = Process.pid.to_s + "_"
 
     # Public: Start a new PostgreSQL cursor query
     # sql     - The SQL statement with interpolated values
@@ -185,7 +186,9 @@ module PostgreSQLCursor
     # Public: Opens (actually, "declares") the cursor. Call this before fetching
     def open
       set_cursor_tuple_fraction
-      @cursor = @@cursor_seq += 1
+      @@cursor_seq += 1
+      @cursor = @@cursor_prefix + @@cursor_seq.to_s
+
       @result = @connection.execute("declare cursor_#{@cursor} cursor for #{@sql}")
       @block = []
     end
