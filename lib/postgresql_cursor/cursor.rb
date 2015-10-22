@@ -85,13 +85,13 @@ module PostgreSQLCursor
       @connection.transaction do
         begin
           open
-          @column_types ||= column_types
           while true do
-            result = @connection.execute("fetch #{block_size} from cursor_#{@cursor}")
-            result_count = result.count
+            @result = @connection.execute("fetch #{block_size} from cursor_#{@cursor}")
+            @column_types ||= column_types
+            result_count = @result.count
             break if (result_count < 1)
             @count += result_count
-            object_array = result.collect {|row| klass.send(:instantiate, row, @column_types) }
+            object_array = @result.collect {|row| klass.send(:instantiate, row, @column_types) }
             block.call(object_array)
           end
         rescue Exception => e
@@ -170,10 +170,13 @@ module PostgreSQLCursor
       return @column_types if @column_types
 
       types = {}
+
       fields = @result.fields
+
       fields.each_with_index do |fname, i|
         ftype = @result.ftype i
         fmod  = @result.fmod i
+
         types[fname] = @connection.get_type_map.fetch(ftype, fmod) { |oid, mod|
           warn "unknown OID: #{fname}(#{oid}) (#{sql})"
           OID::Identity.new
@@ -190,6 +193,7 @@ module PostgreSQLCursor
       @cursor = @@cursor_prefix + @@cursor_seq.to_s
 
       @result = @connection.execute("declare cursor_#{@cursor} cursor for #{@sql}")
+
       @block = []
     end
 
