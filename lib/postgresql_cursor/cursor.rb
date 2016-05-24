@@ -192,7 +192,7 @@ module PostgreSQLCursor
       @@cursor_seq += 1
       @cursor = @@cursor_prefix + @@cursor_seq.to_s
 
-      @result = @connection.execute("declare cursor_#{@cursor} cursor for #{@sql}")
+      @result = @connection.exec_query("declare cursor_#{@cursor} cursor for #{@sql}")
 
       @block = []
     end
