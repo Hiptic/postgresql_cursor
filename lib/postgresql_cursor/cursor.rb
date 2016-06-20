@@ -77,29 +77,46 @@ module PostgreSQLCursor
       end
     end
 
-    def instance_in_batches(klass=nil, &block)
+    # Given a block, yield batches of instances
+    #
+    # Returns total number of instances yielded
+    def instance_in_batches(klass = nil)
       klass ||= @type
+
+      rows_in_batches do |rows|
+        object_array = rows.collect do |row|
+          klass.send(:instantiate, row, @column_types)
+        end
+
+        yield object_array
+      end
+    end
+
+    # Given a block, yield batches of rows
+    #
+    # Returns total number of rows yielded
+    def rows_in_batches
       @count = 0
       block_size ||= @block_size ||= @options.fetch(:block_size) { 1000 }
 
       @connection.transaction do
         begin
           open
-          while true do
-            @result = @connection.execute("fetch #{block_size} from cursor_#{@cursor}")
+          loop do
+            @result = @connection.execute(
+              "fetch #{block_size} from cursor_#{@cursor}"
+            )
             @column_types ||= column_types
             result_count = @result.count
-            break if (result_count < 1)
+            break if result_count < 1
             @count += result_count
-            object_array = @result.collect {|row| klass.send(:instantiate, row, @column_types) }
-            block.call(object_array)
+            yield @result
           end
-        rescue Exception => e
-          raise e
         ensure
           close
         end
       end
+
       @count
     end
 
