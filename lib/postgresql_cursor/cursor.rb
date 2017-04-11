@@ -43,6 +43,7 @@ module PostgreSQLCursor
       @connection = @options.fetch(:connection) { ::ActiveRecord::Base.connection }
       @count      = 0
       @iterate    = options[:instances] ? :each_instance : :each_row
+      @closed     = false
     end
 
     # Specify the type to instantiate, or reset to return a Hash
@@ -110,7 +111,20 @@ module PostgreSQLCursor
             result_count = @result.count
             break if result_count < 1
             @count += result_count
-            yield @result
+
+            # Close the cursor before # executing the block for the last time.
+            #
+            # The connection will be in the state 'idle in transaction' until
+            # the cursor is closed. While it is in this state, it's not
+            # available in the connection pool. Closing the cursor should help
+            # with that.
+            if result_count < block_size
+              close
+              yield @result
+              break
+            else
+              yield @result
+            end
           end
         ensure
           close
@@ -231,7 +245,10 @@ module PostgreSQLCursor
 
     # Public: Closes the cursor
     def close
-      @connection.execute("close cursor_#{@cursor}")
+      unless @closed
+        @connection.execute("close cursor_#{@cursor}")
+        @closed = true
+      end
     end
 
     # Private: Sets the PostgreSQL cursor_tuple_fraction value = 1.0 to assume all rows will be fetched

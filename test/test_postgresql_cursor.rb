@@ -78,5 +78,17 @@ class TestPostgresqlCursor < Minitest::Test
     assert_equal 1000, r.size
     assert_equal Fixnum, r.first.class
   end
-  
+
+  def test_sql_batches
+    # block_size of 60 intentionally chosen so that less than 60 rows are
+    # returned on the final iteration. Since the total product count is 1,000,
+    # the last block will only contain 40 items. This tests the logic of closing
+    # the cursor early (when less than block_size rows are returned).
+    cursor = PostgreSQLCursor::Cursor.new('select * from products', block_size: 60)
+    count = 0
+    cursor.rows_in_batches do |rows|
+      count += rows.values.length
+    end
+    assert_equal(1000, count)
+  end
 end
