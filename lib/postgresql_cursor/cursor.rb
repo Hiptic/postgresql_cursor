@@ -106,7 +106,7 @@ module PostgreSQLCursor
           open
           loop do
             @result = @connection.execute(
-              "fetch #{block_size} from cursor_#{@cursor}"
+              "fetch #{block_size} from #{@cursor}"
             )
             @column_types ||= column_types
             result_count = @result.count
@@ -222,9 +222,9 @@ module PostgreSQLCursor
     def open
       set_cursor_tuple_fraction
       @@cursor_seq += 1
-      @cursor = @@cursor_prefix + @cursor_custom_prefix + @@cursor_seq.to_s
+      @cursor = '"cursor_' + @@cursor_prefix + @cursor_custom_prefix + @@cursor_seq.to_s + '"'
 
-      @result = @connection.exec_query("declare cursor_#{@cursor} cursor for #{@sql}")
+      @result = @connection.exec_query("declare #{@cursor} cursor for #{@sql}")
 
       @block = []
     end
@@ -240,14 +240,14 @@ module PostgreSQLCursor
     # Private: Fetches the next block of rows into @block
     def fetch_block(block_size=nil)
       block_size ||= @block_size ||= @options.fetch(:block_size) { 1000 }
-      @result = @connection.execute("fetch #{block_size} from cursor_#{@cursor}")
+      @result = @connection.execute("fetch #{block_size} from #{@cursor}")
       @block = @result.collect {|row| row } # Make our own
     end
 
     # Public: Closes the cursor
     def close
       unless @closed
-        @connection.execute("close cursor_#{@cursor}")
+        @connection.execute("close #{@cursor}")
         @closed = true
       end
     end
