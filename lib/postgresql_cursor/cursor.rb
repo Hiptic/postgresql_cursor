@@ -21,7 +21,7 @@ module PostgreSQLCursor
     include Enumerable
     attr_reader :sql, :options, :connection, :count, :result
     @@cursor_seq = 0
-    @@cursor_prefix = Process.pid.to_s + "_"
+    @@cursor_prefix = Process.pid.to_s + '_'
 
     # Public: Start a new PostgreSQL cursor query
     # sql     - The SQL statement with interpolated values
@@ -38,12 +38,13 @@ module PostgreSQLCursor
     #
     # Returns the cursor object when called with new.
     def initialize(sql, options={})
-      @sql        = sql
-      @options    = options
+      @sql = sql
+      @options = options
       @connection = @options.fetch(:connection) { ::ActiveRecord::Base.connection }
-      @count      = 0
-      @iterate    = options[:instances] ? :each_instance : :each_row
-      @closed     = false
+      @count = 0
+      @iterate = options[:instances] ? :each_instance : :each_row
+      @closed = false
+      @cursor_custom_prefix = options[:cursor_prefix] || ''
     end
 
     # Specify the type to instantiate, or reset to return a Hash
@@ -221,7 +222,7 @@ module PostgreSQLCursor
     def open
       set_cursor_tuple_fraction
       @@cursor_seq += 1
-      @cursor = @@cursor_prefix + @@cursor_seq.to_s
+      @cursor = @@cursor_prefix + @cursor_custom_prefix + @@cursor_seq.to_s
 
       @result = @connection.exec_query("declare cursor_#{@cursor} cursor for #{@sql}")
 
